@@ -1,0 +1,67 @@
+<html>
+<head>
+<style>
+h3 { text-align: center; color: #666; }
+body {
+	background: #111;
+	color: #1F1;
+	font-size:12px;
+	font-family:monospace;
+}
+div#list {
+	width:19%;
+	float:left;
+	height: 60%;
+	background:#222;
+}
+div#out {
+	border-left:3px solid #555;
+	width:80%;
+	float:left;
+	height: 60%;
+	background:#333;
+}
+div#command {
+	border-top:3px solid #555;
+	width:100%;
+	height:40%;
+}
+div#cmd_content {
+	color: #4A4;
+	overflow:scroll;
+	text-align:bottom;
+	height: 90%;
+}
+div#list_content {
+	overflow:auto;
+	height: 90%;
+}
+input {  width: 99%; position: absolute; bottom: 0; border: 0; background-color: #111; color: #4F4; }
+
+
+</style>
+
+</head>
+<body>
+<div id="list">
+	<h3 id ="list_title">connected hosts</h3>
+	<div id="list_content">
+	</div>
+</div>
+<div id="out">
+	<h3>output</h3>
+	<div id="out_content">
+	</div>
+</div>
+<div id="command">
+	<h3>console</h3>
+	<div id="cmd_content">
+	</div>
+	<input type="text" width=100% id="cmd" onkeyup="docommand(event)" />
+</div>
+<div id="inject" style="display:none;"> </div>
+
+<script type="text/javascript" src="/panel.js"></script>
+
+</body>
+</html>
