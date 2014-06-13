@@ -1,7 +1,11 @@
 <html>
 <head>
 <style>
-h3 { text-align: center; color: #666; }
+h3 { text-align: center; color: #666; padding: 0 2px; margin: 0 2px; }
+ol { list-style-type: none; }
+li { list-style-type: none; padding: 0; margin: 0; }
+img.right { float: right; }
+
 body {
 	background: #111;
 	color: #1F1;
@@ -21,6 +25,10 @@ div#out {
 	height: 60%;
 	background:#333;
 }
+div#out_content {
+	overflow-y: auto;
+	word-wrap: break-word;
+}
 div#command {
 	border-top:3px solid #555;
 	width:100%;
@@ -28,15 +36,22 @@ div#command {
 }
 div#cmd_content {
 	color: #4A4;
-	overflow:scroll;
+	overflow-y:auto;
+	word-wrap: break-word;
 	text-align:bottom;
 	height: 90%;
 }
 div#list_content {
-	overflow:auto;
+	overflow-y:auto;
+	word-wrap: break-word;
 	height: 90%;
 }
-input {  width: 99%; position: absolute; bottom: 0; border: 0; background-color: #111; color: #4F4; }
+dt { float: left; display: block; width: 120px; color: #4A4; font-weight: bolder; padding: 0; margin: 0; }
+dd { float: left; padding: 0; margin: 0 }
+dl { margin: 0; padding: 0 }
+input {  width: 80%; position: absolute; bottom: 0; border: 0; background-color: #111; color: #4F4; font-size: 16px; }
+.active { cursor: pointer; }
+.inactive { cursor: pointer; text-decoration: line-through; color: #4A4; }
 
 
 </style>
@@ -49,7 +64,7 @@ input {  width: 99%; position: absolute; bottom: 0; border: 0; background-color:
 	</div>
 </div>
 <div id="out">
-	<h3>output</h3>
+	<h3 id="out_title">output</h3>
 	<div id="out_content">
 	</div>
 </div>
@@ -57,7 +72,7 @@ input {  width: 99%; position: absolute; bottom: 0; border: 0; background-color:
 	<h3>console</h3>
 	<div id="cmd_content">
 	</div>
-	<input type="text" width=100% id="cmd" onkeyup="docommand(event)" />
+	<input type="text" width=100% id="cmd" onkeyup="docommand(event)" /><button onclick="exploit()" style="float:right;">Exploit</button>
 </div>
 <div id="inject" style="display:none;"> </div>
 

