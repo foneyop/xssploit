@@ -1,0 +1,30 @@
+<html>
+	<body>
+		<p>the iframe:</p>
+		<iframe src="http://s1.dom.com/priv.html" id="ifrm"></iframe>
+
+		<a href="http://www.bodybuilding.com">BB.com</a>
+
+		<script>
+			// reference to iframe with id 'ifrm'
+			var ifrm = document.getElementById('ifrm');
+			console.log(ifrm);
+
+			// reference to window in the iframe
+			var win = ifrm.contentWindow;
+			console.log(win);
+
+			// reference to document in iframe
+			//var doc = ifrm.contentDocument? ifrm.contentDocument: ifrm.contentWindow.document;
+			doc = win.document;
+
+			console.log("IFRAM DOC:");
+			console.log(doc);
+
+			// reference to a form named 'ifrmTest' in iframe
+			var priv = doc.getElementById('priv');
+			console.log("private: " + priv);
+		</script>
+	</body>
+</html>
+
