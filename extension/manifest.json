@@ -1,0 +1,21 @@
+{
+	"manifest_version": 2,
+
+	"name": "Javascipt Injections",
+	"description": "This extension injects XSSploit code into every page",
+	"version": "6",
+
+	"permissions": [ "http://*/*", "http://s1.dom.com/*", "webNavigation", "tabs"],
+	"browser_action": {
+		"default_icon": "xss.png",
+		"default_popup": "popup.html"
+	},
+	"content_scripts" : [{
+		"matches" : ["http://*/*", "http://s1.dom.com/*"],
+		"js": ["cs.js"]
+
+	}]
+
+}
+
+
