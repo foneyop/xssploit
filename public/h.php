@@ -2,10 +2,13 @@
 header('Content-type: text/javascript');
 if (isset($_COOKIE['xssid']))
 	$id = $_COOKIE['xssid'];
-else if (isset($_GET['id']))
-	$id = $_GET['id'];
-else
-	$id = preg_replace("/[\+\/\=]/", "", base64_encode(openssl_random_pseudo_bytes(12)));
+else {
+	if (isset($_GET['id']))
+		$id = $_GET['id'];
+	else
+		$id = preg_replace("/[\+\/\=]/", "", base64_encode(openssl_random_pseudo_bytes(12)));
+	setcookie("xssid", $id, 0, "/");
+}
 echo "var sploit = '{$_SERVER['HTTP_HOST']}';";
 echo "var sploitapi = 'http://{$_SERVER['HTTP_HOST']}/api.php';";
 echo "var sploitid = '$id';";
