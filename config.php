@@ -34,6 +34,8 @@ define('REUSE_HOST', true);
 //define('PASSWORD', "NO DEFAULT".preg_replace("/[\+\/\=]/", "", base64_encode(openssl_random_pseudo_bytes(12))));
 define('PASSWORD', "Pine Dale");
 
+define('XSSPASSWORD', "xssqahunter");
+
 // define the idle polling interval at 40 seconds
 define('IDLE_POLL', 29000);
 
