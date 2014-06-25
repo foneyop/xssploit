@@ -4,6 +4,7 @@
 
 require '../config.php';
 $log = Logger::getLogger("app");
+mt_srand();
 
 // ensure that browsers do not cache this call
 header('Expires: Sat, 26 Jul 1997 05:00:00 GMT' );
@@ -31,6 +32,7 @@ function create_guid($value) {
 	$guid = "";
 	for ($i=0;$i<$l;$i++) {
 		$guid .= $space[mt_rand(0, count($space))];
+		usleep(1);
 	}
 	return $guid;
 }
@@ -69,11 +71,11 @@ try
 		$parts = array();
 		parse_str($params['query'], $parts);
 		foreach ($parts as $key => $value) {
-			$rows = $db->select("get_param", "SELECT * FROM param", array("urlid" => $rows, "name" => $key));
+			$rows = $db->select("get_param", "SELECT * FROM param", array("url_id" => $id, "name" => $key));
 			if (!isset($rows[0])) {
 				$guid = create_guid();
 				$param_id = $db->insert("add_param", "param", array("url_id" => $id, "name" => $key, "guid" => $guid));
-				$result[$part] = array("id" => $param_id, "url_id" => $id, "name" => $key, "guid" => $guid, "last_test" => "never");
+				$result[$part] = array("id" => $param_id, "url_id" => $id, "name" => $key, "guid" => $guid, "last_test" => null);
 			}
 			else {
 				$result[$part] = $rows[0];
@@ -83,41 +85,27 @@ try
 		serve_response($result);
 	}
 
-	if ($_GET["A"] == "exploit") { 
-		$command = "{$_GET['payload']}.php?".$_SERVER['QUERY_STRING'];
-		if ($_GET['target'] == "ALL") {
-			$rows = $db->select("get hosts", "SELECT *, 'active' as class FROM host", array("heartbeat > " => "!subtime(CURRENT_TIMESTAMP, '0:0:15')"));
-			foreach ($rows as $row) {
-				$db->insert("add command", "commands", array("guid" => $row['guid'], "command" => $command, "id" => null));
+	if ($_GET["A"] == "test_param") {
+		$db->update("update test", "param", array("last_test" => "!current_timestamp"), array("id" => $_GET['id']));
+	}
+
+	if ($_GET["A"] == "found_param") {
+		
+	}
+
+	if ($_GET["A"] == "ignore") {
+		$params = parse_url($_GET["url"]);
+		$rows = $db->select("get_url", "SELECT * FROM url", array("domain" => $params['host'], "protocol" => $params['scheme'], "url" => $params['path']));
+		if (isset($rows[0]['id'])) {
+			$res = $db->update("ignore_url", "url", array("ignore" => 1), array("id" => $rows[0]['id']));
+			if ($res) {
+				serve_response(array("result" => "success.  url will be ignored forever."));
 			}
 		}
-		else {
-			$db->insert("add command", "commands", array("guid" => $_GET['target'], "command" => $command, "id" => null));
-		}
-	}
-	if ($_GET["A"] == "debug") { 
-		$rows = $db->select("get hosts", "SELECT id, log FROM debug_log", array("guid" => $_GET['guid']));
-		$log = "<hr /><dl>";
-		foreach ($rows as $r) {
-			$log .= "<dt>".$r['id']."</dt>";
-			$log .= "<dd>".$r['log']."</dt>";
-			//$log .= str_replace("%A0", " / ", $r['log']) . "<br />";
-		}
-		$log .= "</dl>";
-
-		echo "document.getElementById('out_debug').innerHTML = '$log'; xsscls(); ";
+		serve_response(array("result" => "fail.  unable to find url, or update failed."));
 	}
 
-	if ($_GET["A"] == "modules") {
 
-		//$rows = $db->select("get hosts", "SELECT log FROM debug_log", array("guid" => $_GET['guid']));
-		$modules = array();
-		foreach (glob("modules/*.php") as $module) {
-			$lines = file_get_contents($module);
-			preg_match("/(\$\w+)/", $lines, $matches);
-			$m = array();
-		}
-	}
 	
 
 } catch(Exception $e) {
