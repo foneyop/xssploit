@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Getting Started Extension's Popup</title>
+    <style>
+      body {
+        min-width: 357px;
+        overflow-x: hidden;
+      }
+
+      img {
+        margin: 5px;
+        border: 2px solid black;
+        vertical-align: middle;
+        width: 75px;
+        height: 75px;
+      }
+    </style>
+
+    <!--
+      - JavaScript and HTML must be in separate files: see our Content Security
+      - Policy documentation[1] for details and explanation.
+      -
+      - [1]: http://developer.chrome.com/extensions/contentSecurityPolicy.html
+     -->
+    <script src="popup.js"></script>
+	<h1>XSSploit</h1>
+	<label>convert:</label><input id="conv" type="text" style="width:100%" />
+	<button onclick="urlencode(true)">url encode</button>
+	<button onclick="urlencode(false)">url decode</button>
+	<button onclick="base64(true)">base64 encode</button>
+	<button onclick="base64(false)">base64 decode</button>
+	<div id="xsscon"> </div>
+	<!--script>console.log("popup2"); alert("extension"); document.getElementById('priv');</script-->
+  </head>
+  <body>
+  </body>
+</html>
+

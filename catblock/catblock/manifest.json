@@ -1,0 +1,19 @@
+{
+  "name": "XSSploit Finder",
+  "version": "11",
+  "description": "Find security problems on bodybuilding.com",
+  "permissions": ["webRequest", "tabs", "webRequestBlocking", "http://*.bodybuilding.com/*"],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "browser_action": {
+		"default_icon": "xss.jpg",
+		"default_popup": "popup.html"        // optional
+  },
+  "content_scripts": [{
+	  "matches": ["http://*.bodybuilding.com/*"],
+	  "js":["xssploit.js"]
+  }],
+
+  "manifest_version": 3
+}
