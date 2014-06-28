@@ -1,3 +1,21 @@
+
+// refresh host list every 3 seconds
+var intfetch = window.setInterval(fetch_list, 3000);
+var intdebug = false;
+
+// initial variables
+var gpass = "";
+var gbuffer = [];
+var gbidx = -1;
+var glistSz = 0;
+var running_jobs = 0;
+var module_path = "/";
+var params = [];
+var debug_host = '';
+params['target'] = "all";
+params['payload'] = "alert";
+params['message'] = "payload 1";
+
 /**
  * Focus on the command prompt
  */
@@ -5,24 +23,12 @@ function foc() { document.getElementById("cmd").focus(); }
 window.onkeydown = foc;
 foc();
 
-// refresh host list every 3 seconds
-var intfetch = window.setInterval(fetch_list, 3000);
-var intdebug = false;
 
-var gpass = "";
-var gbuffer = [];
-var gbidx = -1;
-var glistSz = 0;
-var running_jobs = 0;
-var module_path = "/";
-var params = {};
-var debug_host = '';
-params['target'] = "all";
-params['payload'] = "alert";
-params['message'] = "payload 1";
-
+// xss get by id
 function xssgbi(x) { return document.getElementById(x); }
+// xss clear the dom workspace
 function xsscls(t) { xssgbi('sploit').innerHTML=""; }
+
 
 function display_help() {
 	com_out("<dl>");
@@ -48,10 +54,9 @@ function exploit() {
 }
 
 function fetch_list() {
-	if (gpass) { 
-		cs("/api.php?auth="+gpass+"&A=list");
-	}
+	if (gpass) { cs("/api.php?auth="+gpass+"&A=list"); xsscls();}
 }
+
 /*
 function update_debug() {
 	var o = "<div class='debug'>";
@@ -63,6 +68,7 @@ function update_debug() {
 	document.getElementById("out_content").innerHTML += o;
 }
 */
+
 function show_host(i) {
 	var o = "<dl>"
 	for (var x in host_list[i]) {
@@ -134,8 +140,15 @@ function append(t) {d = document.getElementById('sploit');console.log(d);r=d.inn
 function com_out(t) { var e = document.getElementById('cmd_content'); e.innerHTML += t + "<br />"; e.scrollIntoView(false); e.scrollTop = e.scrollHeight; }
 function show_options() { for (x in params) { com_out(x + " = " + params[x]); } }
 
-
 function handle_command(event) {
+
+function change_payload() {
+	for (x in params) {
+		if (x != "payload" && x != "target") {
+			delete params[x];
+		}
+	}
+}
 
 elm = document.getElementById("cmd");
 if(event && event.keyCode == 13) {
@@ -150,7 +163,15 @@ if(event && event.keyCode == 13) {
 			break;
 
 		case "show":
-			show_options();
+			console.log(p);
+			if (p.length>1 && p[1] == "commands") { cs("/api.php?auth="+gpass+"&A=commands&id="+p[2]); }
+			else { show_options(); }
+			break;
+
+		case "remove":
+			if (p.length>1 && p[1] == "command") { cs("/api.php?auth="+gpass+"&A=rmcmd&id="+p[2]); }
+			console.log(p);
+			break;
 
 		case "set":
 			if (p.length > 2) {
@@ -158,13 +179,28 @@ if(event && event.keyCode == 13) {
 				var v = p.slice(2).join(" ");
 				params[name] = v
 				com_out(name + " set to " + v);
-				//console.log(p);
-				//console.log(p[1] = params[p[1]]);
+				if (name == "payload")
+					change_payload();
 			}
 			break;
 
+		case "unset":
+			if (p.length > 1) {
+				console.log(params);
+				var name = p[1]
+				delete params[name];
+				com_out("unset: " + name);
+				console.log(params);
+			}
+			break;
+
+
 		case "exploit":
 			exploit();
+			break;
+
+		case "help":
+			display_help();
 			break;
 	}
 

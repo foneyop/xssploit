@@ -47,9 +47,9 @@ div#list_content {
 	word-wrap: break-word;
 	height: 90%;
 }
-dt { float: left; display: block; width: 120px; color: #4A4; font-weight: bolder; padding: 0; margin: 0; }
-dd {  padding: 0; margin: 0 }
-dl { margin: 0; padding: 0 }
+dt { float: left; display: block; width: 120px; color: #4A4; font-weight: bolder; padding: 0; margin: 0; background-color: red; }
+dd { float; left;  padding: 0; margin: 0; background-color: blue;  }
+dl { margin: 0; padding: 0; background-color: yellow; }
 input {  border: 0; background-color: #111; color: #4F4; font-size: 16px; }
 .active { cursor: pointer; }
 .inactive { cursor: pointer; text-decoration: line-through; color: #4A4; }
@@ -74,12 +74,12 @@ div#prompt { float: left; font-size: 16px; padding: 3px; }
 	<div id="out_debug">
 	</div>
 </div>
-<div id="command">
+<div id="command" style="width:100%">
 	<h3>console</h3>
 	<div id="cmd_content"></div>
 	<button onclick="exploit()" style="float:right;">Exploit</button>
 	<div id="prompt">prompt</div>
-	<div><input type="text" width="100%" id="cmd" onkeyup="handle_command(event)" /></div>
+	<div style=""><input type="text" style="width:500px" id="cmd" onkeyup="handle_command(event)" /></div>
 </div>
 <div id="sploit" style="display:none;"> </div>
 
