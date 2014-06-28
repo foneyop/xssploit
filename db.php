@@ -1,4 +1,7 @@
 <?php
+/**
+ * Simple DB layer for persistence
+ */
 
 class DB
 {
