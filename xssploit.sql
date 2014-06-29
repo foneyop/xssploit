@@ -19,6 +19,10 @@
 -- Table structure for table `audit`
 --
 
+DROP DATABASE IF EXISTS `xssploit`;
+CREATE DATABASE `xssploit`;
+USE `xssploit`
+
 DROP TABLE IF EXISTS `audit`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
