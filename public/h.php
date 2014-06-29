@@ -14,6 +14,7 @@ echo "var sploitapi = 'http://{$_SERVER['HTTP_HOST']}/api.php';";
 echo "var sploitid = '$id';";
 ?>
 
+vas xssgbl = Array();
 var xsshide = "display:none;width:0;height:0;";
 var gdebug = "";
 function debug(message) { gdebug += message + ", "; }
@@ -26,6 +27,8 @@ function getCookie(name) {
     }
     return "";
 }
+
+function xssopt(name) { return(xssgbl[xssmodpre+name]); }
 
 function setCookie(cname, cvalue, exdays) {
 	var d = new Date();

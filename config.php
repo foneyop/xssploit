@@ -40,3 +40,6 @@ define('IDLE_POLL', 29000);
 // define the active polling interval at 2 seconds
 // hosts are activve when they are targeted
 define('ACTIVE_POLL', 2000);
+
+// THe path to the module directory
+define('MODULE_DIR', __FILE__ .'/modules/');

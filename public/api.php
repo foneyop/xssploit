@@ -89,8 +89,24 @@ function run_commands($db, $guid) {
 
 			// log what we are about to do
 			$log->info("run {$foo['path']} ($a)");
+			// TODO: find a better way than eval here
 			eval($a);
-			require("../modules/".trim($foo['path']));
+			// .js or .php file?
+			$parts = explode(".", trim($foo["path"]));
+			$tpath = MODULE_DIR.$parts[0];
+
+			// run the module code (print out the JS)
+			if (file_exists($tpath . ".js")) {
+				// TODO: move this to a view
+				echo "var xssgbl = Array();"
+				foreach($param as $key => $val) {
+					echo "xssgbl['" + $key + "'] = $val;";
+				}
+				require($tpath . ".js");
+			}
+			if (file_exists($tpath . ".php"))
+				require($tpath . ".php");
+
 
 			// don't remove autorun commands
 			if ($guid != "AUTORUN") {
