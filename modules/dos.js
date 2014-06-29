@@ -1,7 +1,7 @@
 // get the options
 
-var xssurl = decodeURIComponent(xssopt("url"));
-var xssrequests = xssopt("requests");
+var xssurl = decodeURIComponent(xssopt("url", "the url to DoS", "http://localhost"));
+var xssrequests = xssopt("requests", "number of requests to send", "10");
 
 // called after the DoS finishes
 function xssdosfin() {
