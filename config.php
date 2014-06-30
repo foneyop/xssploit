@@ -35,7 +35,8 @@ $GLOBALS['LOGFILE'] = '/tmp/xssploit.log';
 define('OBFUSCATE_JS', true);
 
 // a web writable location for "caching" the obfuscated JavaScript
-define('OBFUSCATE_DIR', '/tmp/xssploit');
+define('OBFUSCATE_DIR', '/tmp/xssploit/');
+mkdir(OBFUSCATE_DIR, 0755, true);
 
 // this setting controls if we should create a new host entry (db row)
 // for each new guid session we see. Usually you will not want to create
