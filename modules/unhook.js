@@ -7,3 +7,9 @@ try {
 		}
 	}
 } catch (e) { }
+// unhook the heart beat
+if (xss.interval) { window.clearInterval(xss.interval); }
+// remove the content we know about
+xss.cls();
+// remove xss name space variables
+xss={};delete(xss);

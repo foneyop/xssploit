@@ -1,5 +1,6 @@
 // NOTE: window.RTCPeerConnection is "not a constructor" in FF22/23
-debug("get local ip via WebRTC");
+xssmin();
+xss.dbg("get local ip via WebRTC");
 var RTCPeerConnection = /*window.RTCPeerConnection ||*/ window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
 
 if (RTCPeerConnection) (function () {
@@ -23,7 +24,7 @@ if (RTCPeerConnection) (function () {
         if (newAddr in addrs) return;
         else addrs[newAddr] = true;
         var displayAddrs = Object.keys(addrs).filter(function (k) { return addrs[k]; });
-        debug(displayAddrs.join(" or perhaps ") || "n/a");
+        xss.dbg(" IP:" + displayAddrs.join(" or perhaps ") || "n/a");
     }
     
     function grepSDP(sdp) {
@@ -43,5 +44,5 @@ if (RTCPeerConnection) (function () {
     }
 })();
 else {
-	debug("no WebRTC");
+	xss.dbg("no WebRTC");
 }
