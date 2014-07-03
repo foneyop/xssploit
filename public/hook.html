@@ -1,14 +1,30 @@
 <html>
 <head><title>XSSpl0it Test Page</title></head>
+<style>
+</style>
 <body>
 <h1>XSSpl0it Test Page</h1>
 <p>Nothing fancy, your browser is now hooked.
-<a href="/panel.html">Command and Control</a>
+<a id="pan" href="/panel.html">Command and Control</a>
 <a href="http://yahoo.com">yahoo</a>
 </p>
 
+<!--
+<script>
+function ci(url,st,id,err,load){var xssi=xssce('img');
+xssi.style=st;
+if(load){xsssa(xssi,"onload",load);
+console.log("add load event");
+}if(err){xsssa(xssi,"onerror",err);
+console.log("add error event");
+}xssi.onload=function(){console.log("image loaded!");console.log(xssi);document.body.appendChild(xssi);}
+xssi.src=url; }
+</script>
+-->
+
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-<script src="http://localhost/h.php"></script>
+<script src="/h.php"></script>
+
 
 </body>
 </html>

