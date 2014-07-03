@@ -2,7 +2,7 @@
 // TODO: get debug working
 // TODO: finish xmlhttprequest hijack
 
-require '../config.php';
+require '../lib/config.php';
 $log = Logger::getLogger("app");
 mt_srand();
 

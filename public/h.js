@@ -7,7 +7,7 @@ xss.hide = "display:none;width:0;height:0;";
 xss.debug = "";
 xss.reg = [];
 
-xss.decrpt = function(text) {
+xss.decrypt = function(text) {
 	return btoa();
 };
 

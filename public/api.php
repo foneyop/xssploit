@@ -1,7 +1,7 @@
 <?php 
 // include the configuration file
-require '../config.php';
-require '../jsmin.php';
+require '../lib/config.php';
+require '../lib/jsmin.php';
 // our log file
 $log = Logger::getLogger("app");
 
@@ -39,7 +39,9 @@ function create_host($db, $guid, $cookies) {
 	$log = Logger::getLogger("app");
 	$agent = $_SERVER['HTTP_USER_AGENT'];
 	$ip = $_SERVER['REMOTE_ADDR'];
-	$headers = join(", ", apache_request_headers());
+	$headers = "n/a";
+	if (function_exists("apache_request_headers"))
+		$headers = join(", ", apache_request_headers());
 	$os = match_os($agent);
 	$browser = match_browser($agent);
 	$cachekey ="host{$ip}{$browser}{$os}";
@@ -189,7 +191,6 @@ try {
 		echo "xss.reg = Array();\n";
 		echo "xss.reg['interval'] = ".IDLE_POLL.";"; 
 		serve_javascript("../modules/heartbeat.js");
-		//require("../modules/heartbeat.php");
 		exit;
 	}
 

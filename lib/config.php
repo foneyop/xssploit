@@ -20,7 +20,7 @@ define("DB_HOST", "localhost");
 // You really should not use the root user.  Update this with a user that has 
 // write access to xssploit DB
 define("DB_USER", "root");
-define("DB_PASS", "Jasmine");
+define("DB_PASS", "");
 define("DB_NAME", "xssploit");
 
 // set to Logger::ERROR if running with more than a few browsers
@@ -36,7 +36,7 @@ define('OBFUSCATE_JS', true);
 
 // a web writable location for "caching" the obfuscated JavaScript
 define('OBFUSCATE_DIR', '/tmp/xssploit/');
-mkdir(OBFUSCATE_DIR, 0755, true);
+if (!file_exists(OBFUSCATE_DIR)) { mkdir(OBFUSCATE_DIR, 0755, true); }
 
 // this setting controls if we should create a new host entry (db row)
 // for each new guid session we see. Usually you will not want to create
